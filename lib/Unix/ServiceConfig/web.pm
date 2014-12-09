@@ -44,14 +44,14 @@ sub _make_log_directory($)
 	$uid = $self->{'config'}-{'default-uid'} if (!$uid);
 	if ($uid !~ m/^[0-9]*$/)
 	{
-		@u    = getpwnam($uid) if ($uid !~ m/^[0-9]*$/);
+		@u    = $self->{'user_mod'}->getpwnam($uid) if ($uid !~ m/^[0-9]*$/);
 		$uid  = $u[2];
 		$user = $u[7];
 		$user = $self->_path_clean_chroot($user);
 	} # make sure that uid is numeric
 	if (!$gid)
 	{
-		@u   = getpwuid($uid);
+		@u   = $self->{'user_mod'}->getpwuid($uid);
 		$gid = $u[3]                             if (-1 != $#u);
 		$gid = $self->{'config'}-{'default-gid'} if (-1 == $#u);
 	} # get the gid if it isn't set
@@ -129,7 +129,7 @@ sub check_location($$;$)
 		$location =~ s/$user//g;
 
 		# check if the user actually exists
-		my @user = getpwnam($user);
+		my @user = $self->{'user_mod'}->getpwnam($user);
 		my $home = $self->_path_clean_chroot($user[7]);
 #		$answer = $self->_get_yesno("Use $home", 'y', 1);
 

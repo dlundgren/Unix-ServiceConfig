@@ -3703,6 +3703,11 @@ sub make_path($$;$)
 			}
 		}
 	}
+
+    if ($self->_is_enabled($self->{'config'}->{'is-jail'})) {
+        return $self->{'config'}->{'jail-path'}.'/'.$_path.'/'.$path;
+    }
+
 	return($_path.'/'.$path);
 } #make_path
 

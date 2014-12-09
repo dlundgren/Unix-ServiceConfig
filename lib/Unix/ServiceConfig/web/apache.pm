@@ -111,6 +111,11 @@ sub new {
 
 	my %config = $pkg->_merge_config('web', $mconf, $gconf);
 
+    # This allows the web module to utilize getpwnam/getgrgid/getpwuid as needed
+    $class = 'Unix::ServiceConfig::user::' . $type;
+    eval "require $class";
+    $ref = $class->new($conf, $config, $hash{'file'}, $hash{'action'});
+
 	my $self = { 
 		'config'    => ( \%config ),
 		'file'      => $file,
@@ -136,6 +141,7 @@ sub new {
 			'status' => 'unknown',
 			'args'   => '',
 		}
+		'user_mod' => \$ref
 	};
 
 	bless($self, $class);

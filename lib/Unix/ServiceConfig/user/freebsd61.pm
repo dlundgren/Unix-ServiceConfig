@@ -154,6 +154,34 @@ sub new {
 } #new
 
 =item B<Class Specific>
+=cut
+# XXX: need to document these
+sub _getLine($$)
+{
+    my ($self, $file, $search);
+    my $file = $self->make_path($file);
+    my ($found, $_line) = $self->_file_search($file, $search);
+    if (!$found) {
+        return -1;
+    }
+    my @u = split(/:/, $_line);
+    return @u;
+}
+sub getpwuid
+{
+    my ($self, $uid) = @_;
+    return $self->_getLine('/etc/passwd', "^.*?:\*:$uid:");
+}
+sub getgrgid
+{
+    my ($self, $gid) = @_;
+    return $self->_getLine('/etc/group', "^.*?:\*:$gid:");
+}
+sub getpwnam
+{
+    my ($self, $username) = @_;
+    return $self->_getLine('/etc/passwd', "^$username:");
+}
 
 =item B<_delete_user>
 
@@ -202,7 +230,7 @@ sub add_to_apache_chroot($$)
 		$self->_pretty_print_start("Adding ($user) to Apache chroot");
 		# get the information from the main database because the user should
 		# already exist
-		my @u = getpwnam($user);
+		my @u = $self->getpwnam($user);
 		if (-1 == $#u)
 		{
 			$self->_set_error("The user does not exist.\n");
@@ -611,7 +639,7 @@ sub get_uid
 	    $i    <= $self->{'config'}->{'uid-max'};
 	    $i++)
 	{
-		@u = getpwuid($i);
+		@u = $self->getpwuid($i);
 		if (-1 == $#u)
 		{
 			$duid = $i;
@@ -641,7 +669,7 @@ sub get_uid
 		      )
 		{
 			# check that the uid isn't in use
-			@u = getpwuid($uid);
+			@u = $self->getpwuid($uid);
 			if (-1 != $#u)
 			{
 				$self->_error("UID ($uid) already in use.");
@@ -770,7 +798,7 @@ classes are to check against.
 	}
 
 	# check that we have the user in the system
-	my @u = getpwnam($user);
+	my @u = $self->getpwnam($user);
 	if (-1 == $#u)
 	{
 		$self->_set_error("User may already exist and was not detected.");
@@ -928,7 +956,7 @@ sub del()
 	$self->{'section'}->{'extra'}->{'user_name'} = $user;
 
 	# clean up the users home directory from being in a chroot.
-	my @u = getpwnam($user);
+	my @u = $self->getpwnam($user);
 	my $home = $self->_path_clean_chroot($u[7]);
 
 	# remove from the apache chroot first, or fail otherwise
@@ -1026,7 +1054,7 @@ when users are deleted.
 		$self->_pretty_print_start("Archiving ($user) directory");
 		my $dir = $self->{'config'}->{'directory-archive'};
 		$self->_mkdir($dir, 0, 0, '0755') if (!-e $dir);
-		my @u = getpwnam($user);
+		my @u = $self->getpwnam($user);
 		my $home = $self->_path_clean_chroot($u[7]);
 		if (-1 == rename($home, "$dir/$user"))
 		{
@@ -1080,7 +1108,7 @@ sub list
 	# only the users that are valid are being utilized.
 	for($i = $uid_min; $i <= $uid_max; $i++)
 	{
-		my @u = getpwuid($i);
+		my @u = $self->getpwuid($i);
 		if ( (-1 != $#u) && ($u[0] =~ /^$search/) )
 		{
 			# the user exists so check if they are locked
@@ -1090,7 +1118,7 @@ sub list
 			delete($u[1]); # delete the password as soon as possible
 
 			my $user  = $u[0]; # get the username
-			my $group = getgrgid($u[3]); # get the group name
+			my $group = $self->getgrgid($u[3]); # get the group name
 			my $home  = $self->_path_clean_chroot($u[7]); #clean the home
 			
 			# determine the width of the display columns
@@ -1163,7 +1191,7 @@ sub type_exists($)
 	my $held = 0;
 
 	my $regex_hold = $self->{'config'}->{'hold-style'};
-	my @u = getpwnam($user);
+	my @u = $self->getpwnam($user);
 	if (-1 != $#u)
 	{
 		$held = 1 if ($u[1] =~ /$regex_hold/);
@@ -1223,7 +1251,7 @@ sub unhold
 		$self->_pretty_print_start("Restoring ($user) directory");
 		my $dir = $self->{'config'}->{'directory-archive'};
 		$self->_mkdir($dir, 0, 0, '0755') if (!-e $dir);
-		my @u = getpwnam($user);
+		my @u = $self->getpwnam($user);
 		my $home = $self->_path_clean_chroot($u[7]);
 		if (-1 == rename("$dir/$user", $home))
 		{
